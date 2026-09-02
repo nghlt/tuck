@@ -6,9 +6,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Set by goreleaser via ldflags
+// Set by goreleaser via ldflags for tagged releases; defaults to the
+// current development version otherwise.
 var (
-	Version = "dev"
+	Version = "0.1.1"
 	Commit  = "unknown"
 )
 
@@ -22,4 +23,9 @@ var versionCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(versionCmd)
+
+	// Enable `tuck --version` / `tuck -v` in addition to `tuck version`,
+	// using the same output format.
+	rootCmd.Version = Version
+	rootCmd.SetVersionTemplate(fmt.Sprintf("tuck %s (%s)\n", Version, Commit))
 }

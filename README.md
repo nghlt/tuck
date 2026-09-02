@@ -142,6 +142,7 @@ tuck attach [name]        # Attach to a session (default: most recent)
 tuck list                 # List all sessions (with last active time)
 tuck delete <name>        # Delete a session
 tuck clear                # Delete all sessions
+tuck version              # Show version info (also: tuck --version, tuck -v)
 ```
 
 ### Aliases
