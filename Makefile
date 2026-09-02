@@ -1,6 +1,7 @@
 .PHONY: build install clean
 
 BINARY := tuck
+INSTALL_DIR ?= /usr/local/bin
 
 build:
 	@echo "🔨 Building $(BINARY)..."
@@ -13,10 +14,10 @@ build:
 	fi
 
 install:
-	@echo "🔨 Installing $(BINARY) to $$(go env GOPATH)/bin..."
-	@if go install .; then \
-		echo "✅ Installed: $$(go env GOPATH)/bin/$(BINARY)"; \
-		echo "   (make sure that directory is in your PATH)"; \
+	@echo "🔨 Installing $(BINARY) to $(INSTALL_DIR)..."
+	@if go build -o $(INSTALL_DIR)/$(BINARY) .; then \
+		echo "✅ Installed: $(INSTALL_DIR)/$(BINARY)"; \
+		$(INSTALL_DIR)/$(BINARY) version; \
 	else \
 		echo "❌ Install failed"; \
 		exit 1; \

@@ -15,8 +15,11 @@ import (
 // AppName is the application name used in messages
 const AppName = "tuck"
 
-// DefaultDetachKeys is the default detach method (tilde + period, like SSH)
-var DefaultDetachKeys = []DetachKey{{EscapeChar: '~'}}
+// DefaultDetachKeys is the default detach method (`. or ~.)
+var DefaultDetachKeys = []DetachKey{
+	{EscapeChar: '`'},
+	{EscapeChar: '~'},
+}
 
 // DetachKey represents a method to detach from a session
 type DetachKey struct {
@@ -255,7 +258,7 @@ func (c *Client) setTitle() {
 		return
 	}
 	title := strings.ReplaceAll(c.titleFormat, "{name}", c.name)
-	fmt.Fprintf(os.Stdout, "\x1b]2;%s\x07", title)
+	fmt.Fprintf(os.Stdout, "\x1b]0;%s\x07", title)
 }
 
 // resetTitle clears the terminal title set by setTitle. Most shells with a
@@ -266,7 +269,7 @@ func (c *Client) resetTitle() {
 	if c.titleFormat == "" {
 		return
 	}
-	fmt.Fprint(os.Stdout, "\x1b]2;\x07")
+	fmt.Fprint(os.Stdout, "\x1b]0;\x07")
 }
 
 func (c *Client) sendWindowSize() {

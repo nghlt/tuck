@@ -59,7 +59,7 @@ go build
 > exit code (`echo $?`, `0` = success) or just run `./tuck version` to confirm.
 > If you'd rather have an explicit ✅/❌ message, use `make build` instead
 > (also builds `./tuck`, then runs `./tuck version` to confirm it works).
-> `make install` does the same for `go install` (installs to `$(go env GOPATH)/bin`).
+> `make install` installs the binary to `/usr/local/bin/tuck`.
 
 ## 🚀 Quick Start
 
@@ -82,10 +82,10 @@ tuck list
 # myproject    5s ago     claude
 # dev          2h ago     bash
 
-# Attach to an existing session
+# Attach to a session (creates if it doesn't exist)
 tuck attach myproject
 
-# Attach to the most recently active session
+# Attach to the most recently active session (creates one if none exist)
 tuck attach
 
 # Delete a session
@@ -96,11 +96,11 @@ tuck delete myproject
 
 | Key | Action |
 |-----|--------|
-| `~.` | Detach from session (after Enter, like SSH) |
+| `` `. `` or `~.` | Detach from session (after Enter) |
 
 ### Escape Sequence
 
-You can detach by pressing `~.` (tilde then period) after a newline. This works great with Claude Code and other applications that capture control keys.
+You can detach by pressing `` `. `` (backtick then period, SSH-friendly) or `~.` after a newline. This works seamlessly over SSH without conflicting with OpenSSH's escape sequence, and works great with Claude Code and other applications that capture control keys.
 
 ### Custom Detach Key
 
@@ -108,7 +108,7 @@ You can configure detach keys via flags or environment variables:
 
 ```bash
 # Single key via flag
-tuck -d '~.' new
+tuck -d '`.' new
 tuck -d ctrl-a attach mysession
 
 # Multiple keys via flags
@@ -130,8 +130,8 @@ Supported formats:
 tuck shows helpful status messages:
 
 ```
-[tuck: ✨ created "myproject" (~. to detach)]
-[tuck: 🔗 attached "myproject" (~. to detach)]
+[tuck: ✨ created "myproject" (`. or ~. to detach)]
+[tuck: 🔗 attached "myproject" (`. or ~. to detach)]
 [tuck: 👋 detached "myproject"]
 [tuck: 🏁 ended "myproject"]
 ```
@@ -144,10 +144,11 @@ Use `--quiet` or `-q` to suppress messages.
 tuck                      # Create and attach to a new session (auto-named)
 tuck new [cmd]            # Create a new session with auto-generated name
 tuck create <name> [cmd]  # Create a new session with specified name
-tuck attach [name]        # Attach to a session (default: most recent)
+tuck attach [name]        # Attach to a session (creates if not exists; default: most recent)
 tuck list                 # List all sessions (with last active time)
 tuck delete <name>        # Delete a session
 tuck clear                # Delete all sessions
+tuck setup                # Configure shell prompt indicator (auto-detects shell)
 tuck version              # Show version info (also: tuck --version, tuck -v)
 ```
 
@@ -183,18 +184,24 @@ export TUCK_TITLE_FORMAT='tuck:{name}'
 The title reverts to blank on detach (most shells with a fancy prompt will
 overwrite it again anyway).
 
-### Shell Prompt Indicator (manual)
+### Shell Prompt Indicator (built-in automatic setup)
 
-Since `TUCK_SESSION` is exported inside every tuck session, you can show a
-small colored marker in your prompt yourself. This is the closest thing to
-a tmux-style status indicator, without tuck imposing any UI:
+Run `tuck setup` to automatically configure a colored indicator in your shell (`~/.bashrc`, `~/.zshrc`, or `~/.config/fish/conf.d/tuck.fish`):
+
+```bash
+tuck setup              # Automatically detect shell and configure indicator
+tuck setup zsh          # Configure for specific shell (bash, zsh, fish)
+tuck setup --uninstall  # Remove indicator configuration
+```
+
+Or configure it manually in your shell rc:
 
 **bash / zsh:**
 
 ```bash
 if [ -n "$TUCK_SESSION" ]; then
-  PS1="%F{yellow}🛏 $TUCK_SESSION%f $PS1"   # zsh
-  # PS1="\[\e[33m\]🛏 $TUCK_SESSION\[\e[0m\] $PS1"   # bash
+  PS1="\[\e[1;34m\][🛏 $TUCK_SESSION]\[\e[0m\] $PS1"   # bash
+  # PS1="%F{blue}[🛏 $TUCK_SESSION]%f $PS1"            # zsh
 fi
 ```
 
@@ -203,7 +210,7 @@ fi
 ```fish
 function fish_prompt
   if set -q TUCK_SESSION
-    set_color yellow; echo -n "🛏 $TUCK_SESSION "; set_color normal
+    set_color blue; echo -n "[🛏 $TUCK_SESSION] "; set_color normal
   end
   # ...rest of your prompt
 end
