@@ -55,6 +55,12 @@ cd tuck
 go build
 ```
 
+> `go build` prints nothing on success (that's normal Go behavior) — check the
+> exit code (`echo $?`, `0` = success) or just run `./tuck version` to confirm.
+> If you'd rather have an explicit ✅/❌ message, use `make build` instead
+> (also builds `./tuck`, then runs `./tuck version` to confirm it works).
+> `make install` does the same for `go install` (installs to `$(go env GOPATH)/bin`).
+
 ## 🚀 Quick Start
 
 ```bash
