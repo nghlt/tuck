@@ -3,10 +3,13 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 const (
@@ -16,13 +19,14 @@ const (
 
 var (
 	uninstallFlag bool
+	noReloadFlag  bool
 )
 
 var setupCmd = &cobra.Command{
 	Use:   "setup [bash|zsh|fish]",
 	Short: "Configure shell prompt indicator for tuck sessions",
 	Long: `Configure your shell prompt to show a visual indicator when inside a tuck session.
-Automatically detects your current shell if not specified.
+Automatically detects your current shell if not specified and refreshes configuration.
 Use --uninstall to remove the configuration.`,
 	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -50,6 +54,9 @@ Use --uninstall to remove the configuration.`,
 				os.Exit(1)
 			}
 			fmt.Printf("✅ Removed tuck indicator from %s\n", rcFile)
+			if !noReloadFlag {
+				reloadShell()
+			}
 			fmt.Printf("Please reload your shell: source %s\n", rcFile)
 			return
 		}
@@ -60,6 +67,9 @@ Use --uninstall to remove the configuration.`,
 		}
 
 		fmt.Printf("✅ Configured tuck indicator in %s\n", rcFile)
+		if !noReloadFlag {
+			reloadShell()
+		}
 		fmt.Printf("To apply changes immediately, run:\n  source %s\n", rcFile)
 	},
 }
@@ -192,7 +202,24 @@ func removeConfig(rcFile string) error {
 	return os.WriteFile(rcFile, []byte(strings.TrimSpace(newContent)+"\n"), 0644)
 }
 
+func reloadShell() {
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		return
+	}
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		shell = "/bin/bash"
+	}
+	bin, err := exec.LookPath(shell)
+	if err != nil {
+		return
+	}
+	fmt.Println("🔄 Refreshing shell configuration...")
+	_ = syscall.Exec(bin, []string{shell}, os.Environ())
+}
+
 func init() {
 	setupCmd.Flags().BoolVarP(&uninstallFlag, "uninstall", "u", false, "Remove tuck shell prompt configuration")
+	setupCmd.Flags().BoolVar(&noReloadFlag, "no-reload", false, "Do not automatically reload shell")
 	rootCmd.AddCommand(setupCmd)
 }
