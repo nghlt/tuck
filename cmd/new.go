@@ -128,6 +128,7 @@ func createAndAttachSession(name string, command []string) {
 		Quiet:            quietFlag,
 		SuppressAttached: true,
 		DetachKeys:       detachKeys,
+		TitleFormat:      getTitleFormat(),
 	}); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)

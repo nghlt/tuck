@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"golang.org/x/term"
@@ -140,6 +141,9 @@ type Client struct {
 	name       string
 	quiet      bool
 	detachKeys []DetachKey
+	// titleFormat is the terminal title format string (e.g. "🛏 {name}").
+	// Empty means the terminal title indicator is disabled.
+	titleFormat string
 	// Escape sequence state (tracks state for each escape char)
 	afterNewline  bool
 	sawEscapeChar byte // The escape char we saw (0 if none)
@@ -152,6 +156,9 @@ type AttachOptions struct {
 	Quiet            bool
 	SuppressAttached bool        // Don't show "attached" message (for new session)
 	DetachKeys       []DetachKey // Keys/sequences to detach (nil = use default)
+	// TitleFormat sets the terminal title while attached, with "{name}"
+	// replaced by the session name. Empty disables the indicator.
+	TitleFormat string
 }
 
 // Attach connects to an existing session
@@ -181,6 +188,7 @@ func Attach(name string, opts AttachOptions) error {
 		name:         name,
 		quiet:        opts.Quiet,
 		detachKeys:   detachKeys,
+		titleFormat:  opts.TitleFormat,
 		afterNewline: true, // Start as if we just saw a newline
 	}
 
@@ -202,6 +210,10 @@ func (c *Client) run(showAttached bool) error {
 	}
 	c.oldState = oldState
 	defer c.restore()
+
+	// Show session name in the terminal title while attached, if enabled
+	c.setTitle()
+	defer c.resetTitle()
 
 	// Send initial window size
 	c.sendWindowSize()
@@ -232,6 +244,29 @@ func (c *Client) restore() {
 	if c.oldState != nil {
 		_ = term.Restore(int(os.Stdin.Fd()), c.oldState)
 	}
+}
+
+// setTitle sets the terminal window/tab title to the configured format
+// (with "{name}" replaced by the session name), if enabled. This uses the
+// widely-supported OSC 2 escape sequence and does not touch the alternate
+// screen buffer or scrollback, keeping tuck's minimal design intact.
+func (c *Client) setTitle() {
+	if c.titleFormat == "" {
+		return
+	}
+	title := strings.ReplaceAll(c.titleFormat, "{name}", c.name)
+	fmt.Fprintf(os.Stdout, "\x1b]2;%s\x07", title)
+}
+
+// resetTitle clears the terminal title set by setTitle. Most shells with a
+// custom prompt (e.g. one that includes the cwd) will overwrite this on the
+// next prompt anyway; this just avoids leaving a stale "tuck: name" title
+// behind for plain shells.
+func (c *Client) resetTitle() {
+	if c.titleFormat == "" {
+		return
+	}
+	fmt.Fprint(os.Stdout, "\x1b]2;\x07")
 }
 
 func (c *Client) sendWindowSize() {
@@ -272,6 +307,7 @@ func (c *Client) handleOutput() {
 		case MsgExit:
 			// Restore terminal and show message
 			c.restore()
+			c.resetTitle() // os.Exit below skips deferred cleanup
 			if !c.quiet {
 				fmt.Fprintf(os.Stderr, "\n[%s: 🏁 ended %q]\n", AppName, c.name)
 			}

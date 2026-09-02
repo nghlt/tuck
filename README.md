@@ -152,6 +152,59 @@ tuck clear                # Delete all sessions
 - `tuck ls` → `tuck list`
 - `tuck rm` → `tuck delete`
 
+## 🔍 Knowing You're Inside tuck
+
+tuck deliberately has no status bar, but there are two lightweight, opt-in
+ways to tell you're inside a session:
+
+### Terminal Title (built-in)
+
+Pass `-T` / `--title` (or set `TUCK_TITLE=1`) and tuck will show the session
+name in your terminal's tab/window title while attached, e.g. `🛏 myproject`.
+This uses the standard OSC 2 escape sequence — no status bar, no extra
+screen line, and it plays nicely with scrollback:
+
+```bash
+tuck -T attach myproject
+export TUCK_TITLE=1   # enable for every tuck invocation
+
+# customize the format ({name} is replaced with the session name)
+tuck --title-format 'tuck:{name}' attach myproject
+export TUCK_TITLE_FORMAT='tuck:{name}'
+```
+
+The title reverts to blank on detach (most shells with a fancy prompt will
+overwrite it again anyway).
+
+### Shell Prompt Indicator (manual)
+
+Since `TUCK_SESSION` is exported inside every tuck session, you can show a
+small colored marker in your prompt yourself. This is the closest thing to
+a tmux-style status indicator, without tuck imposing any UI:
+
+**bash / zsh:**
+
+```bash
+if [ -n "$TUCK_SESSION" ]; then
+  PS1="%F{yellow}🛏 $TUCK_SESSION%f $PS1"   # zsh
+  # PS1="\[\e[33m\]🛏 $TUCK_SESSION\[\e[0m\] $PS1"   # bash
+fi
+```
+
+**fish:**
+
+```fish
+function fish_prompt
+  if set -q TUCK_SESSION
+    set_color yellow; echo -n "🛏 $TUCK_SESSION "; set_color normal
+  end
+  # ...rest of your prompt
+end
+```
+
+Both approaches are entirely optional and off by default, in keeping with
+tuck's zero-config philosophy.
+
 ## 🔧 Environment Variables
 
 | Variable | Description |
@@ -159,6 +212,8 @@ tuck clear                # Delete all sessions
 | `TUCK_SESSION` | Set inside tuck sessions. Prevents nested tuck sessions. |
 | `TUCK_DETACH_KEY` | Default detach key (e.g., `~.`, `` `. ``, `ctrl-a`) |
 | `TUCK_DETACH_KEY_1`, `_2`, ... | Additional detach keys |
+| `TUCK_TITLE` | Set to show the session name in the terminal title while attached |
+| `TUCK_TITLE_FORMAT` | Custom terminal title format, `{name}` is replaced with the session name (implies `TUCK_TITLE`) |
 
 ## 📄 License
 

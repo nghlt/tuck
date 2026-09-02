@@ -62,9 +62,32 @@ func checkNotNested() {
 	}
 }
 
+// defaultTitleFormat is used when --title/-T or TUCK_TITLE is enabled
+// without an explicit format.
+const defaultTitleFormat = "🛏 {name}"
+
+// getTitleFormat returns the terminal title format to use, or "" if the
+// terminal title indicator is disabled. Precedence: --title-format flag >
+// TUCK_TITLE_FORMAT env var > (--title flag or TUCK_TITLE env var, using
+// the default format).
+func getTitleFormat() string {
+	if titleFormatFlag != "" {
+		return titleFormatFlag
+	}
+	if envFormat := os.Getenv("TUCK_TITLE_FORMAT"); envFormat != "" {
+		return envFormat
+	}
+	if titleFlag || os.Getenv("TUCK_TITLE") != "" {
+		return defaultTitleFormat
+	}
+	return ""
+}
+
 var (
-	quietFlag      bool
-	detachKeyFlags []string
+	quietFlag       bool
+	detachKeyFlags  []string
+	titleFlag       bool
+	titleFormatFlag string
 )
 
 var rootCmd = &cobra.Command{
@@ -90,6 +113,8 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&quietFlag, "quiet", "q", false, "Suppress status messages")
 	rootCmd.PersistentFlags().StringArrayVarP(&detachKeyFlags, "detach-key", "d", nil, "Detach key (e.g., `., ~., ctrl-a). Can be specified multiple times")
+	rootCmd.PersistentFlags().BoolVarP(&titleFlag, "title", "T", false, "Show session name in terminal title while attached (also: TUCK_TITLE)")
+	rootCmd.PersistentFlags().StringVar(&titleFormatFlag, "title-format", "", "Terminal title format, use {name} as placeholder (implies --title, also: TUCK_TITLE_FORMAT)")
 
 	// Allow command arguments with dashes (e.g., "claude --continue")
 	newCmd.Flags().SetInterspersed(false)

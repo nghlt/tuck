@@ -42,8 +42,9 @@ Use ~. (default) or configured detach key to detach.`,
 		}
 
 		if err := session.Attach(name, session.AttachOptions{
-			Quiet:      quietFlag,
-			DetachKeys: mustGetDetachKeys(),
+			Quiet:       quietFlag,
+			DetachKeys:  mustGetDetachKeys(),
+			TitleFormat: getTitleFormat(),
 		}); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
